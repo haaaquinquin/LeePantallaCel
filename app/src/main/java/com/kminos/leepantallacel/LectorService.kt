@@ -57,6 +57,7 @@ class LectorService : AccessibilityService(), TextToSpeech.OnInitListener {
     private var inicioUltima = 0
     private var ultimaCruda: List<String> = emptyList()
     private var capturas = 0
+    private var empezarDeCero = false
 
     // Lectura
     private var frases: List<String> = emptyList()
@@ -211,6 +212,8 @@ class LectorService : AccessibilityService(), TextToSpeech.OnInitListener {
             return
         }
         cerrarPanel()
+        // Si ya se terminó de leer, la siguiente lectura empieza desde cero
+        if (empezarDeCero) reiniciar()
         main.postDelayed({ capturar() }, 150)
     }
 
@@ -347,6 +350,19 @@ class LectorService : AccessibilityService(), TextToSpeech.OnInitListener {
         inicioUltima = 0
         ultimaCruda = emptyList()
         capturas = 0
+        empezarDeCero = false
+    }
+
+    /** Lee un texto guardado en el historial. */
+    fun leerDesdeHistorial(t: String) {
+        leyendo = false
+        pausado = false
+        generacion++
+        tts?.stop()
+        reiniciar()
+        lineas.addAll(t.split('\n'))
+        capturas = 1
+        iniciarLectura()
     }
 
     // ------------------------------------------------------------------ lectura en voz alta
@@ -362,6 +378,8 @@ class LectorService : AccessibilityService(), TextToSpeech.OnInitListener {
             mostrarPanelPregunta(0, false)
             return
         }
+        Historial.agregar(this, texto)
+        empezarDeCero = false
         frases = dividir(texto)
         indice = 0
         leyendo = true
@@ -428,11 +446,44 @@ class LectorService : AccessibilityService(), TextToSpeech.OnInitListener {
 
     private fun terminar() {
         leyendo = false
+        empezarDeCero = true
         val caja = nuevaCaja()
         caja.addView(texto("Terminé de leer.", 18f, true))
         val f = fila()
         f.addView(boton("Leer otra vez", true) { iniciarLectura() })
+        f.addView(boton("Historial", false) { mostrarPanelHistorial() })
         f.addView(boton("Cerrar", false) { reiniciar(); cerrarPanel() })
+        caja.addView(f)
+        abrirPanel(caja)
+    }
+
+    private fun mostrarPanelHistorial() {
+        val caja = nuevaCaja()
+        caja.addView(texto("Últimas lecturas", 18f, true))
+        val lista = Historial.lista(this)
+        if (lista.isEmpty()) {
+            caja.addView(texto("Todavía no hay lecturas guardadas.", 14f, false))
+        }
+        for (item in lista) {
+            val b = boton("▶ ${Historial.etiqueta(item)}", false) {
+                cerrarPanel()
+                leerDesdeHistorial(item.texto)
+            }
+            b.isSingleLine = true
+            b.ellipsize = android.text.TextUtils.TruncateAt.END
+            b.gravity = Gravity.START or Gravity.CENTER_VERTICAL
+            b.textSize = 15f
+            b.setPadding(dp(12), 0, dp(12), 0)
+            b.layoutParams = LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT
+            ).apply { setMargins(dp(4), dp(4), dp(4), dp(4)) }
+            caja.addView(b)
+        }
+        val f = fila()
+        f.addView(boton("Cerrar", false) {
+            if (empezarDeCero) reiniciar()
+            cerrarPanel()
+        })
         caja.addView(f)
         abrirPanel(caja)
     }
@@ -483,6 +534,7 @@ class LectorService : AccessibilityService(), TextToSpeech.OnInitListener {
         caja.addView(f)
 
         val f2 = fila()
+        f2.addView(boton("Historial", false) { mostrarPanelHistorial() })
         f2.addView(boton("Cancelar", false) {
             reiniciar()
             cerrarPanel()

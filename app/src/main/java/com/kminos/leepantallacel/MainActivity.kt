@@ -40,6 +40,7 @@ class MainActivity : Activity(), TextToSpeech.OnInitListener {
     private lateinit var spinner: Spinner
     private lateinit var lblVoces: TextView
     private lateinit var lblVel: TextView
+    private lateinit var cajaHistorial: LinearLayout
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -50,6 +51,7 @@ class MainActivity : Activity(), TextToSpeech.OnInitListener {
     override fun onResume() {
         super.onResume()
         refrescarEstado()
+        refrescarHistorial()
     }
 
     override fun onDestroy() {
@@ -144,7 +146,17 @@ class MainActivity : Activity(), TextToSpeech.OnInitListener {
         }
         col.addView(chk)
 
-        col.addView(parrafo("El texto se lee en tu teléfono; no se manda a ningún lado."))
+        // Historial
+        col.addView(subtitulo("5. Historial (últimas 5 lecturas)"))
+        cajaHistorial = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        col.addView(cajaHistorial)
+        col.addView(boton("Borrar historial", false) {
+            Historial.borrar(this)
+            refrescarHistorial()
+            avisar("Historial borrado")
+        })
+
+        col.addView(parrafo("El texto se lee en tu teléfono; no se manda a ningún lado. Solo se guardan tus últimas 5 lecturas, dentro de esta app."))
 
         val scroll = ScrollView(this).apply {
             setBackgroundColor(Color.parseColor("#FBF8F1"))
@@ -164,6 +176,26 @@ class MainActivity : Activity(), TextToSpeech.OnInitListener {
             lblEstado.text = "⚠️ El lector está apagado. Actívalo para que aparezca el ícono flotante."
             btnActivar.text = "Abrir ajustes de Accesibilidad"
             btnBurbuja.visibility = View.GONE
+        }
+    }
+
+    private fun refrescarHistorial() {
+        cajaHistorial.removeAllViews()
+        val lista = Historial.lista(this)
+        if (lista.isEmpty()) {
+            cajaHistorial.addView(parrafo("Todavía no hay lecturas guardadas."))
+            return
+        }
+        for (item in lista) {
+            val b = boton("▶ ${Historial.etiqueta(item)}", false) {
+                val s = LectorService.instancia
+                if (s == null) avisar("Primero activa el lector") else s.leerDesdeHistorial(item.texto)
+            }
+            b.isSingleLine = true
+            b.ellipsize = android.text.TextUtils.TruncateAt.END
+            b.gravity = android.view.Gravity.START or android.view.Gravity.CENTER_VERTICAL
+            b.setPadding(dp(12), 0, dp(12), 0)
+            cajaHistorial.addView(b)
         }
     }
 
