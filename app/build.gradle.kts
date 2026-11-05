@@ -11,11 +11,23 @@ android {
         applicationId = "com.kminos.leepantallacel"
         minSdk = 26
         targetSdk = 34
-        versionCode = 2
-        versionName = "1.1"
+        versionCode = 3
+        versionName = "1.2"
+    }
+
+    signingConfigs {
+        create("fija") {
+            storeFile = file("firma.jks")
+            storePassword = "leepantallacel"
+            keyAlias = "leepantallacel"
+            keyPassword = "leepantallacel"
+        }
     }
 
     buildTypes {
+        debug {
+            signingConfig = signingConfigs.getByName("fija")
+        }
         release {
             isMinifyEnabled = false
         }
