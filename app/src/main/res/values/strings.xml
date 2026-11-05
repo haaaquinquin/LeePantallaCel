@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">LeePantallaCel</string>
+    <string name="lector_descripcion">Muestra un ícono flotante. Al tocarlo, LeePantallaCel toma el texto de la pantalla que tienes abierta (puedes juntar varias pantallas haciendo scroll) y te lo lee en voz alta. El texto no sale de tu teléfono.</string>
+</resources>
